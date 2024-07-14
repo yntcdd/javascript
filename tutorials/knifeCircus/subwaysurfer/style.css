@@ -1,0 +1,97 @@
+/* stylelint-disable selector-id-pattern */
+*{
+  padding: 0;
+  margin: 0;
+}
+
+#game{
+  position: relative;
+  width: 300px;
+  height: 500px;
+  border: 1px solid black;
+  margin: auto;
+  box-sizing: border-box;
+}
+
+#character{
+  width: 100px;
+  height: 100px;
+  background-color: red;
+  position: relative;
+  top: 300px;
+  left: 0px;
+}
+
+#white{
+  top: 500px;
+  z-index: 100;
+  position: absolute;
+  width: 300px;
+  height: 130px;
+  background-color: white;
+}
+
+#block{
+  width: 100px;
+  height: 100px;
+  top: 500px;
+  background-color: black;
+  position: relative;
+  animation: slide 5s infinite linear;
+}
+@keyframes slide{
+  0%{top:-100px};
+  100%{top:500px};
+}
+
+#left, #right{
+  width:50%;
+  position: absolute;
+  height: 500px;
+}
+
+#right{
+  left: 50%;
+}
+
+#block1,#block2,#block3 {
+  position: absolute;
+  content: " ";
+  width: 2px;
+  height: 2px;
+  background-color: purple;
+  top: 50px;
+}
+
+#block1 {
+  left: 50px;
+}
+
+#block2 {
+  left: 150px;
+}
+
+#block3 {
+  left: 250px;
+}
+
+#block4,#block5,#block6 {
+  position: absolute;
+  content: " ";
+  width: 2px;
+  height: 2px;
+  background-color: purple;
+  top: 300px;
+}
+
+#block4 {
+  left: 50px;
+}
+
+#block5 {
+  left: 150px;
+}
+
+#block6 {
+  left: 250px;
+}

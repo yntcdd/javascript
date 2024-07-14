@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>2D Breakout Game</title>
+      <style>
+        .grid {
+          position: absolute;
+          width: 560px;
+          height: 300px;
+          border: solid 1px black;
+          margin-top: 100px;
+        }
+
+        .user {
+          position: absolute;
+          width: 100px;
+          height: 20px;
+          background-color: blueviolet;
+        }
+
+        .block {
+          position: absolute;
+          width: 100px;
+          height: 20px;
+          background-color: blue;
+        }
+
+        .ball {
+          position: absolute;
+          width: 20px;
+          height: 20px;
+          border-radius: 10px;
+          background-color: red;
+        }
+      </style>
+    </head>
+    <body>
+      <h1 id="score">0</h1>
+      <div class="grid"></div>
+
+      <script src="index.js"></script>
+    </body>
+  </html>
+</html>
