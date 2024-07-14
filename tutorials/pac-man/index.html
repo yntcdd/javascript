@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
+    <title>JS Pacman</title>
+  </head>
+  <body>
+    <div id="wrapper">
+      <div id="game"></div>
+      <div id="score"></div>
+      <button id="start-button">Start Game</button>
+    </div>
+    <script type="module" src="./index.js">
+      (async() => {
+
+        const requestModule = ({url, dataURL = true}) =>
+          new Promise((resolve, reject) => {
+            const request = new XMLHttpRequest();
+            const reader = new FileReader();
+            reader.onload = () => { resolve(reader.result) };
+            request.open("GET", url);
+            request.responseType = "blob";
+            request.onload = () => { reader[dataURL ? "readAsDataURL" : "readAsText"](request.response) };
+            request.send();
+        })
+
+        let moduleName = `Mod`;
+        // get `Mod` module
+        let moduleRequest = await requestModule({url:"exports.js"});
+        // do stuff with `Mod`; e.g., `console.log(Mod)`
+        let moduleBody = await requestModule({url:"ModBody.js", dataURL: false});
+        let scriptModule = `import {${moduleName}} from "${moduleRequest}"; ${moduleBody}`;
+        let script = document.createElement("script");
+        script.type = "module";
+        script.textContent = scriptModule;
+        document.body.appendChild(script);
+
+      })();
+    </script>
+  </body>
+</html>

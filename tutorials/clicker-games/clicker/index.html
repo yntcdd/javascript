@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Salsa Clicker</title>
+    <link rel="stylesheet" href="main.css" />
+    <style></style>
+  </head>
+  <body>
+    <div class="sectionLeft">
+      <div class="makeCenter">
+        <div class="scoreContainer unselectable">
+          <span id="score">0</span> salsa<br />
+          <span id="scorepersecond">0</span> salsa per second
+        </div>
+        <br />
+        <div class="unselectable" id="clicker"></div>
+      </div>
+      <div class="sectionFooter">
+        <h5>Salsa Clicker</h5>
+        <button type="button" onclick="resetGame();">Reset Game</button>
+      </div>
+    </div>
+
+    <div class="sectionRight">
+      <div id="upgradeContainer"></div>
+      <div id="shopContainer"></div>
+      <div id="achievementContainer"></div>
+    </div>
+
+    <script src="main.js"></script>
+  </body>
+</html>
