@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      canvas {
+        background-color: pink;
+        width: 100vw;
+        height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="myCanvas"> </canvas>
+    <script>
+      const canvas = document.querySelector('#myCanvas');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const context = canvas.getContext('2d');
+      // ctx.beginPath();
+      // ctx.arc(175, 100, 50, 0, Math.PI * 2);
+      // ctx.stroke();
+      // ctx.fill();
+      context.beginPath();
+      context.lineWidth = '2';
+      context.moveTo(1000, 500);
+      context.lineTo(1200, 500);
+
+      context.moveTo(1000, 250);
+      context.lineTo(1200, 250);
+
+      context.moveTo(1000, 250);
+      context.lineTo(1000, 500);
+
+      context.moveTo(1200, 250);
+      context.lineTo(1200, 500);
+
+      context.moveTo(1000, 250);
+      context.lineTo(1100, 150);
+
+      context.moveTo(1200, 250);
+      context.lineTo(1100, 150);
+
+      context.moveTo(1050, 500);
+      context.lineTo(1050, 350);
+
+      context.moveTo(1150, 500);
+      context.lineTo(1150, 350);
+
+      context.moveTo(1050, 350);
+      context.lineTo(1150, 350);
+
+      context.moveTo(1050, 275);
+      context.lineTo(1150, 275);
+
+      context.moveTo(1050, 325);
+      context.lineTo(1150, 325);
+
+      context.moveTo(1050, 275);
+      context.lineTo(1050, 325);
+
+      context.moveTo(1150, 275);
+      context.lineTo(1150, 325);
+
+      context.moveTo(1150, 300);
+      context.lineTo(1050, 300);
+
+      context.moveTo(1100, 275);
+      context.lineTo(1100, 325);
+
+      context.moveTo(1150, 200);
+      context.lineTo(1150, 175);
+
+      context.moveTo(1150, 175);
+      context.lineTo(1175, 175);
+
+      context.moveTo(1175, 175);
+      context.lineTo(1175, 225);
+      context.stroke();
+
+      // ctx.beginPath();
+      // let borderSize = 50;
+      // ctx.fillRect(
+      //   borderSize,
+      //   borderSize,
+      //   canvas.width - 2 * borderSize,
+      //   canvas.height - 2 * borderSize
+      // );
+    </script>
+  </body>
+</html>

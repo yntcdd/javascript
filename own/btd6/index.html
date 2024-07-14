@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet">
+  <style>
+    * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Luckiest Guy', cursive;
+  }
+    body {
+    /* display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh; */
+    background-color: #6EA477;
+    /* width: 100vw;
+    background-image: url('assets/bodybackground.jpg'); */
+
+    }
+    canvas {
+    /* display: block; */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 960px;
+    height: 532px;
+    background-color: blueviolet;
+    }
+    #box {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 970px;
+    height: 542px;
+    background-color: black;
+    }
+
+    /* #monkeyMeadow, #redBloon, #heart, #coins, #dartmonkeyshop { */
+    #img {
+      display: none;
+    }
+  </style>
+  <title>Document</title>
+</head>
+<body>
+  <div id="box"></div>
+  <canvas></canvas>
+  <div id="img">
+    <img id="heart" src="assets/heart.png" alt="heart">
+    <img id="coins" src="assets/Coins.svg" alt="coins">
+    <img id="redBloon" src="assets/redBloon.webp" alt="redBloon">
+    <img id="monkeyMeadow" src="assets/MonkeyMeadow.png" alt="MonkeyMeadow">
+
+    <img id="dartmonkeyshop" src="assets/dartmonkeyshop.svg" alt="dartmonkeyshop">
+    <img id="dartmonkey000" src="assets/dartmonkey000.png" alt="dartmonkey000">
+    <img src="assets/dartmonkey000red.png" alt="dartmonkey000red" id="dartmonkey000red">
+
+    <img id="boomerangmonkeyshop" src="assets/boomerangmonkeyshop.svg" alt="boomerangmonkeyshop">
+    <img id="boomerangmonkey000" src="assets/boomerangmonkey000.png" alt="boomerangmonkey000">
+    <img id="boomerangmonkey000red" src="assets/boomerangmonkey000red.png" alt="boomerangmonkey000red">
+    <img id="boomerang000" src="assets/boomerang000.svg" alt="boomerang000">
+    <img id="blueBloon" src="assets/blueBloon.webp" alt="blueBloon">
+    <img id="greenBloon" src="assets/greenBloon.png" alt="greenBloon">
+    <img id="yellowBloon" src="assets/yellowBloon.png" alt="yellowBloon">
+    <img id="pinkBloon" src="assets/pinkBloon.png" alt="pinkBloon">
+    <img id="blackBloon" src="assets/blackBloon.png" alt="blackBloon">
+    <img id="whiteBloon" src="assets/whiteBloon.png" alt="whiteBloon">
+    <img id = "camoRedBloon" src="assets/camoRedBloon.png" alt="camoRedBloon">
+    <img src="assets/regrowBlueBloon.png" alt="regrowBlueBloon" id="regrowBlueBloon">
+    <img src="assets/dartNormal.png" alt="dartNormal" id="dartNormal">
+    <img src="assets/speedUpButton.png" alt="speedUpButton" id="speedUpButton">
+    <img src="assets/playButton.png" alt="playButton" id="playButton">
+    <img src="assets/powerButton.png" alt="powerButton" id="powerButton">
+  </div>
+  <!-- make a div -->
+  <script type="module" src="main.js"></script>
+</body>
+</html>

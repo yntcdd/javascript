@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Canvas</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      #myCanvas {
+        width: 100vw;
+        height: 100vh;
+        /* width: 200px;
+      height: 100vh; */
+        border: 1px solid #f00;
+        background-color: #222;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="myCanvas"> </canvas>
+    <script>
+      const canvas = document.querySelector('#myCanvas');
+      const context = canvas.getContext('2d');
+      let grd = context.createLinearGradient(0, 0, 200, 0);
+      canvas.height = window.innerHeight;
+      canvas.width = window.innerWidth;
+      drawRectangle();
+      drawLine();
+      drawCircle();
+      drawGradient1();
+      fillGradien1();
+      drawGradient2();
+      fillGradient2();
+      fillText();
+      strokeText();
+      coolText();
+      makeImg();
+      function drawRectangle() {
+        context.fillStyle = '#F00';
+        context.fillRect(0, 0, 150, 75);
+      }
+
+      function drawLine() {
+        context.moveTo(0, 0);
+        context.lineTo(200, 100);
+        context.stroke();
+      }
+
+      function drawCircle() {
+        context.beginPath();
+        context.arc(95, 50, 40, 0, 2 * Math.PI);
+        context.stroke();
+      }
+
+      function drawGradient1() {
+        grd = context.createLinearGradient(0, 0, 200, 0);
+        grd.addColorStop(0, 'red');
+        grd.addColorStop(1, 'white');
+      }
+
+      function fillGradien1() {
+        context.fillStyle = grd;
+        context.fillRect(10, 10, 150, 80);
+      }
+
+      function drawGradient2() {
+        grd = context.createRadialGradient(75, 50, 5, 90, 60, 100);
+        grd.addColorStop(0, 'red');
+        grd.addColorStop(1, 'white');
+      }
+
+      function fillGradient2() {
+        context.fillStyle = grd;
+        context.fillRect(10, 10, 150, 80);
+      }
+
+      function fillText() {
+        context.font = '30px Arial';
+        context.fillText('Hello World', 10, 50);
+      }
+
+      function strokeText() {
+        context.font = '30px Arial';
+        context.strokeText('Hello World', 10, 50);
+      }
+
+      function coolText() {
+        context.font = '30px Comic Sans MS';
+        context.fillStyle = 'red';
+        context.textAlign = 'center';
+        context.fillText('Hello World', canvas.width / 2, canvas.height / 2);
+      }
+
+      function makeImg() {
+        window.addEventListener('load', function () {
+          const img = document.querySelector('##');
+          context.drawImage(img, 10, 10);
+        });
+      }
+    </script>
+  </body>
+</html>

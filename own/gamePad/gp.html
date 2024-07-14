@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gamepad</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        width: 100vw;
+        height: 100vh;
+        background-color: #333;
+        color: #ababab;
+        /* color: hsl(0, 100%, 50%); */
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <script>
+      'use strict';
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+
+      const resize = () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      };
+      resize();
+      window.addEventListener('resize', resize);
+
+      let oldTimeStamp = 0;
+      let secondsPassed = 0;
+      let score, ship, shipCtrl, bltCtrl, aspCtrl, bombCtrl;
+      const gpControl = [{}, {}, {}, {}]; // 4 gamepads
+      const gpIndex = 0; // use the first gamepad
+      // navigator.getGamepads()[0].axes.length = 4
+      // navigator.getGamepads()[0].buttons.length = 18
+      for (let i = 0; i < 22; i++) {
+        gpControl[gpIndex][i] = 0;
+      }
+
+      const angle = (obj1, obj2) => Math.atan2(obj2.y - obj1.y, obj2.x - obj1.x);
+
+      const distance = (obj1, obj2) =>
+        Math.sqrt(
+          (obj2.x - obj1.x) * (obj2.x - obj1.x) +
+            (obj2.y - obj1.y) * (obj2.y - obj1.y)
+        );
+
+      const detectCollision = (obj1, obj2) =>
+        distance(obj1, obj2) <= obj1.radius + obj2.radius;
+
+      window.addEventListener('gamepaddisconnected', (event) => {
+        console.log('connected:', event.gamepad.connected);
+      });
+      window.addEventListener('gamepadconnected', function (event) {
+        const gamepadIndex = event.gamepad.index;
+        console.log('index:', gamepadIndex);
+        console.log('id:', event.gamepad.id);
+        console.log('mapping:', event.gamepad.mapping);
+        // console.log(navigator.getGamepads()[0].buttons);
+        function gpUpdate() {
+          for (const gamepad of navigator.getGamepads()) {
+            if (!gamepad) continue;
+            for (const [index, axis] of gamepad.axes.entries()) {
+              // console.log(gamepad.index, index, axis);
+            }
+            for (const [btnIndex, button] of gamepad.buttons.entries()) {
+              // console.log(gamepad.index, btnIndex, button.value, button.touched, button.pressed);
+            }
+          }
+          Object.keys(navigator.getGamepads()).forEach((key) => {
+            const myGamepad = navigator.getGamepads()[key];
+            // console.log(myGamepad);
+            if (myGamepad) {
+              myGamepad.buttons
+                .map((e) => [e.pressed, e.touched, e.value])
+                .forEach((isPressedTouched, buttonIndex) => {
+                  // press or touched
+                  if (isPressedTouched[0] || isPressedTouched[1]) {
+                    // gpControl[gpIndex][buttonIndex + 4] = isPressedTouched[2];
+                    gpControl[gpIndex][buttonIndex + 4] =
+                      Math.round(isPressedTouched[2] * 1e2) / 1e2;
+                    // console.log(buttonIndex, isPressedTouched[2]);
+                  } else gpControl[gpIndex][buttonIndex + 4] = 0;
+                });
+              myGamepad.axes.forEach((axis, index) => {
+                gpControl[gpIndex][index] = Math.round(axis * 1e2) / 1e2; //round 2 decimal place
+              });
+            }
+          });
+          requestAnimationFrame(gpUpdate);
+        }
+        requestAnimationFrame(gpUpdate);
+      });
+
+      class Circle {
+        constructor(id, x, y, radius, color, opacity = 1, speed = 0, angle = 0) {
+          this.id = id;
+          this.x = x;
+          this.y = y;
+          this.radius = radius;
+          this.color = color;
+          this.hsl = `hsl(${color} 100% 50% / ${opacity})`;
+          this.speed = speed;
+          this.angle = angle;
+          this.vx = Math.round(Math.cos(angle) * speed * 1e2) / 1e2;
+          this.vy = Math.round(Math.sin(angle) * speed * 1e2) / 1e2;
+          this.hit = false;
+          this.level = 1;
+          this.life = 3;
+          this.bomb = 0;
+        }
+        drawGamepad() {
+          ctx.beginPath();
+          ctx.fillStyle = gpControl[gpIndex][this.id] !== 0 ? this.hsl : '#444';
+          if (this.id === 0)
+            ctx.arc(
+              this.x + gpControl[gpIndex][0] * 30,
+              this.y + gpControl[gpIndex][1] * 30,
+              this.radius,
+              0,
+              2 * Math.PI
+            );
+          else if (this.id === 2)
+            ctx.arc(
+              this.x + gpControl[gpIndex][2] * 30,
+              this.y + gpControl[gpIndex][3] * 30,
+              this.radius,
+              0,
+              2 * Math.PI
+            );
+          else if (this.id === 10 || this.id === 11)
+            ctx.arc(
+              this.x,
+              this.y,
+              this.radius + gpControl[gpIndex][this.id] * 10,
+              0,
+              2 * Math.PI
+            );
+          else ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.font = '16px serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = 'white';
+          ctx.fillText(this.id, this.x, this.y);
+        }
+        draw() {
+          ctx.beginPath();
+          ctx.strokeStyle = this.hsl;
+          ctx.fillStyle = this.hsl;
+          ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+          // this.id === -1 ? ctx.fill() : ctx.stroke();
+          // -1 ship, -2 bullets, -3 alienship, -4 explode particles, -10 level bonus, -11 bomb, -12 bomb explodes
+          if (this.id === -1) {
+            ctx.fill();
+            ctx.lineWidth = 5;
+            ctx.font = '24px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = 'white';
+            ctx.fillText(this.level, this.x, this.y);
+            ctx.font = '12px serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(this.bomb, this.x + 5, this.y);
+            // ctx.strokeStyle = '#000';
+            ctx.moveTo(this.x, this.y - this.radius);
+            ctx.lineTo(this.x, this.y - this.radius - 10);
+            ctx.stroke();
+          } else if (this.id === -2 || this.id === -4) {
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          } else if (this.id === -3 || this.id === -12) {
+            ctx.lineWidth = 3;
+            ctx.stroke();
+          } else if (this.id === -10 || this.id === -11) {
+            const grd = ctx.createRadialGradient(
+              this.x,
+              this.y,
+              0,
+              this.x,
+              this.y,
+              this.radius
+            );
+            grd.addColorStop(0, 'gold');
+            grd.addColorStop(1, this.hsl);
+            ctx.fillStyle = grd;
+            ctx.fill();
+          }
+        }
+        update() {
+          if (this.id === -12) {
+            this.radius <= 500 ? (this.radius += 10) : (this.hit = true);
+            this.opacity *= 0.8;
+          } else if (this.id === -1) {
+            if (this.x >= this.radius) this.x += this.vx * -gpControl[gpIndex][18];
+            if (this.x <= canvas.width - this.radius)
+              this.x += this.vx * gpControl[gpIndex][19];
+            if (this.y <= canvas.height - this.radius)
+              this.y += this.vy * gpControl[gpIndex][17];
+            if (this.y >= this.radius) this.y += this.vy * -gpControl[gpIndex][16];
+            // [shipCtrl.x, shipCtrl.y, shipCtrl.hit] = [this.x, this.y, this.hit];
+          } else {
+            this.x += this.vx;
+            this.y += this.vy;
+            if (this.id === -4) {
+              this.radius -= 0.3;
+              if (this.radius <= 2) this.hit = true;
+            }
+          }
+
+          // out of bounds
+          if (
+            this.id !== -12 &&
+            (this.x <= 0 ||
+              this.x >= canvas.width ||
+              this.y <= 0 ||
+              this.y >= canvas.height)
+          ) {
+            if (this.id === -3) {
+              this.vx =
+                Math.cos(angle({ x: this.x, y: this.y }, shipCtrl)) * this.speed;
+              this.vy =
+                Math.sin(angle({ x: this.x, y: this.y }, shipCtrl)) * this.speed;
+            } else if (this.id === -2 || this.id === -4) this.hit = true;
+            else if (this.id === -10 || this.id === -11) {
+              if (this.x <= 0 || this.x >= canvas.width) this.vx = -this.vx;
+              if (this.y <= 0 || this.y >= canvas.height) this.vy = -this.vy;
+            }
+          }
+        }
+      }
+      const gpButtons = [];
+      const gpCenterX = 220;
+      gpButtons.push(new Circle(0, gpCenterX - 70, 190, 20, 10)); // left axis
+      gpButtons.push(new Circle(2, gpCenterX + 80, 190, 20, 30)); // right axis
+
+      gpButtons.push(new Circle(0 + 4, gpCenterX + 170, 170, 15, 100));
+      gpButtons.push(new Circle(1 + 4, gpCenterX + 200, 140, 15, 110));
+      gpButtons.push(new Circle(2 + 4, gpCenterX + 140, 140, 15, 120));
+      gpButtons.push(new Circle(3 + 4, gpCenterX + 170, 110, 15, 130));
+      gpButtons.push(new Circle(4 + 4, gpCenterX - 170, 50, 10, 140));
+      gpButtons.push(new Circle(5 + 4, gpCenterX + 170, 50, 10, 150));
+      gpButtons.push(new Circle(6 + 4, gpCenterX - 170, 20, 10, 160));
+      gpButtons.push(new Circle(7 + 4, gpCenterX + 170, 20, 10, 170));
+
+      gpButtons.push(new Circle(8 + 4, gpCenterX - 90, 100, 10, 180));
+      gpButtons.push(new Circle(9 + 4, gpCenterX + 100, 100, 10, 190));
+
+      gpButtons.push(new Circle(10 + 4, gpCenterX - 70, 190, 20, 200));
+      gpButtons.push(new Circle(11 + 4, gpCenterX + 80, 190, 20, 210));
+
+      gpButtons.push(new Circle(12 + 4, gpCenterX - 170, 110, 15, 220));
+      gpButtons.push(new Circle(13 + 4, gpCenterX - 170, 170, 15, 230));
+      gpButtons.push(new Circle(14 + 4, gpCenterX - 200, 140, 15, 240));
+      gpButtons.push(new Circle(15 + 4, gpCenterX - 140, 140, 15, 250));
+
+      gpButtons.push(new Circle(16 + 4, gpCenterX, 190, 10, 260));
+      gpButtons.push(new Circle(17 + 4, gpCenterX, 100, 30, 270));
+
+      let explodes = [];
+      const loadExploadeEffect = (x, y, color) => {
+        // const color = Math.floor(Math.random() * 360);
+        for (let i = 0; i < 20; i++) {
+          explodes.push(
+            new Circle(
+              -4,
+              x,
+              y,
+              Math.random() * 5 + 5, // radius
+              Math.round(30 - Math.random() * 60) + color,
+              0.5, // opacity
+              Math.random() * 3 + 3, // speed
+              Math.random() * Math.PI * 2 // angle
+            )
+          );
+        }
+      };
+      let bullets = [];
+      const loadBullets = () => {
+        if (Date.now() - bltCtrl.timeStamp > 200) {
+          bullets.push(
+            new Circle(-2, shipCtrl.x, shipCtrl.y - 20, 3, 60, 1, 5, -Math.PI / 2)
+          );
+          if (bltCtrl.level >= 2) {
+            bullets.push(
+              new Circle(
+                -2,
+                shipCtrl.x - 12,
+                shipCtrl.y - 20,
+                3,
+                60,
+                1,
+                5,
+                -Math.PI / 2
+              )
+            );
+            bullets.push(
+              new Circle(
+                -2,
+                shipCtrl.x + 12,
+                shipCtrl.y - 20,
+                3,
+                60,
+                1,
+                5,
+                -Math.PI / 2
+              )
+            );
+          }
+          if (bltCtrl.level >= 3) {
+            bullets.push(
+              new Circle(
+                -2,
+                shipCtrl.x - 15,
+                shipCtrl.y - 20,
+                3,
+                60,
+                1,
+                5,
+                -Math.PI / 2 - 0.2
+              )
+            );
+            bullets.push(
+              new Circle(
+                -2,
+                shipCtrl.x + 15,
+                shipCtrl.y - 20,
+                3,
+                60,
+                1,
+                5,
+                -Math.PI / 2 + 0.2
+              )
+            );
+          }
+          if (bltCtrl.level >= 4) {
+            bullets.push(
+              new Circle(
+                -2,
+                shipCtrl.x - 17,
+                shipCtrl.y - 20,
+                3,
+                60,
+                1,
+                5,
+                -Math.PI / 2 - 0.6
+              )
+            );
+            bullets.push(
+              new Circle(
+                -2,
+                shipCtrl.x + 17,
+                shipCtrl.y - 20,
+                3,
+                60,
+                1,
+                5,
+                -Math.PI / 2 + 0.6
+              )
+            );
+          }
+          if (bltCtrl.level >= 5) {
+            bullets.push(
+              new Circle(-2, shipCtrl.x - 15, shipCtrl.y, 3, 60, 1, 5, -Math.PI)
+            );
+            bullets.push(new Circle(-2, shipCtrl.x + 15, shipCtrl.y, 3, 60, 1, 5, 0));
+          }
+          if (bltCtrl.level >= 6) {
+            bullets.push(
+              new Circle(-2, shipCtrl.x, shipCtrl.y + 15, 3, 60, 1, 5, Math.PI / 2)
+            );
+          }
+          if (bltCtrl.level >= 7) {
+            bullets.push(
+              new Circle(
+                -2,
+                shipCtrl.x - 15,
+                shipCtrl.y + 15,
+                3,
+                60,
+                1,
+                5,
+                Math.PI / 2 + 0.4
+              )
+            );
+            bullets.push(
+              new Circle(
+                -2,
+                shipCtrl.x + 15,
+                shipCtrl.y + 15,
+                3,
+                60,
+                1,
+                5,
+                Math.PI / 2 - 0.4
+              )
+            );
+          }
+          bltCtrl.timeStamp = Date.now();
+        }
+      };
+
+      let alienShips = [];
+      const loadAlienShips = () => {
+        if (
+          Date.now() - aspCtrl.timeStamp > 500 / bltCtrl.level &&
+          aspCtrl.num <= aspCtrl.maxNum * bltCtrl.level
+        ) {
+          if (aspCtrl.LBNum === 0) loadLevelBonusShip();
+          if (aspCtrl.bombNum === 0) loadBombShip();
+          const x = Math.random() * canvas.width;
+          const y = Math.random() * 200;
+          alienShips.push(
+            new Circle(
+              -3,
+              x,
+              y,
+              20,
+              Math.random() * 360,
+              0.7,
+              (Math.random() * 3 + 1) * bltCtrl.level,
+              angle({ x, y }, ship)
+              // Math.PI * 2 * Math.random()
+            )
+          );
+          aspCtrl.num += 1;
+          aspCtrl.timeStamp = Date.now();
+        }
+      };
+
+      const loadLevelBonusShip = () => {
+        aspCtrl.LBNum += 1;
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * 200;
+        alienShips.push(
+          new Circle(-10, x, y, 15, 60, 0.5, 0.5, Math.PI * 2 * Math.random())
+        );
+      };
+
+      const loadBombShip = () => {
+        aspCtrl.bombNum += 1;
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * 200;
+        alienShips.push(
+          new Circle(-11, x, y, 15, 0, 1, 0.5, Math.PI * 2 * Math.random())
+        );
+      };
+
+      let bombs = [];
+      const releaseBomb = (x, y, radius) => {
+        if (Date.now() - bombCtrl.timeStamp > 2000 && bombCtrl.num > 0) {
+          bombCtrl.num -= 1;
+          bombs.push(new Circle(-12, x, y, radius, 0));
+          bombCtrl.timeStamp = Date.now();
+        }
+      };
+
+      window.addEventListener('keyup', (e) => {
+        if (shipCtrl.hit && e.key === ' ') init();
+      });
+      const gameLoop = (timeStamp = 0) => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        secondsPassed = (timeStamp - oldTimeStamp) / 1e3;
+        ctx.font = '24px serif';
+        ctx.fillStyle = 'teal';
+        ctx.fillText(
+          `fps: ${Math.round(1 / secondsPassed)}, Score: ${score}`,
+          150,
+          20
+        );
+        oldTimeStamp = timeStamp;
+        gpButtons.forEach((button) => button.drawGamepad());
+
+        loadAlienShips();
+        alienShips = alienShips.filter((alienShip) => {
+          alienShip.update();
+          if (alienShip.hit) {
+            score += 1;
+            if (alienShip.id === -10) {
+              aspCtrl.LBNum -= 1;
+              if (ship.level < bltCtrl.maxLevel) ship.level += 1;
+            }
+            if (alienShip.id === -11) {
+              aspCtrl.bombNum -= 1;
+              if (bombCtrl.num < bombCtrl.maxBombNum) bombCtrl.num += 1;
+            }
+            loadExploadeEffect(alienShip.x, alienShip.y, alienShip.color);
+            return;
+          } else {
+            alienShip.draw();
+            !ship.hit &&
+              !alienShip.hit &&
+              (alienShip.hit = ship.hit = detectCollision(alienShip, ship));
+            bullets.forEach((bullet) => {
+              !bullet.hit &&
+                !alienShip.hit &&
+                (alienShip.hit = bullet.hit = detectCollision(alienShip, bullet));
+            });
+            bombs.forEach((bomb) => {
+              !bomb.hit &&
+                !alienShip.hit &&
+                (alienShip.hit = detectCollision(alienShip, bomb));
+            });
+            return true;
+          }
+        });
+        aspCtrl.num = alienShips.length;
+        explodes = explodes.filter((particle) => {
+          // remove particle first if it's been hit
+          if (particle.hit) return;
+          else {
+            particle.update();
+            particle.draw();
+            return true;
+          }
+        });
+        ship.update();
+        ship.draw();
+        [
+          shipCtrl.x,
+          shipCtrl.y,
+          shipCtrl.radius,
+          shipCtrl.hit,
+          bltCtrl.level,
+          ship.bomb
+        ] = [ship.x, ship.y, ship.radius, ship.hit, ship.level, bombCtrl.num];
+        if (gpControl[gpIndex][7] === 1) loadBullets();
+        bullets = bullets.filter((bullet) => {
+          // remove bullet first if it's been hit
+          if (bullet.hit) return;
+          else {
+            bullet.update();
+            bullet.draw();
+            return true;
+          }
+        });
+        if (gpControl[gpIndex][6] === 1)
+          releaseBomb(shipCtrl.x, shipCtrl.y, shipCtrl.radius);
+        bombs = bombs.filter((bomb) => {
+          // remove bomb first if it's been hit
+          if (bomb.hit) return;
+          else {
+            bomb.update();
+            bomb.draw();
+            return true;
+          }
+        });
+        if (gpControl[gpIndex][7] === 0) bltCtrl.timeStamp = 0; // reset last bullet timestamp
+        if (!shipCtrl.hit) requestAnimationFrame(gameLoop);
+        else {
+          ctx.font = '64px serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = 'white';
+          ctx.fillText(
+            'Press space button to restart',
+            canvas.width / 2,
+            canvas.height / 2
+          );
+        }
+      };
+
+      const init = () => {
+        score = 0;
+        ship = new Circle(
+          -1,
+          canvas.width / 2,
+          canvas.height * 0.9,
+          15,
+          270,
+          1,
+          3,
+          Math.PI / 4
+        );
+        shipCtrl = { x: 0, y: 0, radius: 0, hit: false };
+        bltCtrl = { timeStamp: 0, level: 1, maxLevel: 7 };
+        bombCtrl = { timeStamp: 0, num: 0, maxBombNum: 3 };
+        // alienShip, LBNum - level bonus
+        aspCtrl = {
+          maxNum: 40,
+          num: 0,
+          LBNum: 0,
+          bombNum: 0,
+          timeStamp: 0
+        };
+        alienShips.length = 0;
+        bullets.length = 0;
+        bombs.length = 0;
+        requestAnimationFrame(gameLoop);
+      };
+
+      init();
+    </script>
+  </body>
+</html>

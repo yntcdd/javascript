@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gamepad</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        width: 100vw;
+        height: 100vh;
+        background-color: #333;
+        color: #aaa;
+      }
+      #output {
+        margin-left: 1rem;
+        display: flex;
+        flex-direction: column;
+      }
+      progress {
+        background-color: #333;
+        border-radius: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    Press button on controller to connect.
+    <div id="output"></div>
+    <script>
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = 300;
+      const gpControl = [{}, {}, {}, {}]; // 4 gamepads
+      const gpIndex = 0; // use the first gamepad
+      // navigator.getGamepads()[0].axes.length = 4
+      // navigator.getGamepads()[0].buttons.length = 18
+      for (let i = 0; i < 22; i++) {
+        gpControl[gpIndex][i] = 0;
+      }
+      window.addEventListener('gamepaddisconnected', (event) => {
+        console.log('connected:', event.gamepad.connected);
+      });
+      window.addEventListener('gamepadconnected', function (event) {
+        const gamepadIndex = event.gamepad.index;
+        console.log('index:', gamepadIndex);
+        console.log('id:', event.gamepad.id);
+        console.log('mapping:', event.gamepad.mapping);
+        // console.log(navigator.getGamepads()[0].buttons);
+        const output = document.getElementById('output');
+        function gpUpdate() {
+          // output.innerHTML = ''; // clear the output
+          output.innerHTML = JSON.stringify(gpControl[gpIndex]); // clear the output
+          for (const gamepad of navigator.getGamepads()) {
+            if (!gamepad) continue;
+            output.insertAdjacentHTML('beforeend', '<h3>Axis</h3>');
+            for (const [index, axis] of gamepad.axes.entries()) {
+              // console.log(gamepad.axes);
+              output.insertAdjacentHTML(
+                'beforeend',
+                `<label>${gamepad.index}, ${index}
+              <progress value=${axis * 0.5 + 0.5}></progress>
+              <span>${axis}</span>
+            </label>`
+              );
+            }
+            output.insertAdjacentHTML('beforeend', '<h3>Buttons</h3>');
+            for (const [btnIndex, button] of gamepad.buttons.entries()) {
+              output.insertAdjacentHTML(
+                'beforeend',
+                `<label>${gamepad.index}, ${btnIndex}
+                <progress value=${button.value}></progress>
+                <span>${button.value}</span>
+                ${button.touched ? 'touched' : ''}
+                ${button.pressed ? 'pressed' : ''}
+              </label>`
+              );
+            }
+          }
+          Object.keys(navigator.getGamepads()).forEach((key) => {
+            const myGamepad = navigator.getGamepads()[key];
+            // console.log(myGamepad);
+            if (myGamepad) {
+              myGamepad.buttons
+                .map((e) => [e.pressed, e.touched, e.value])
+                .forEach((isPressedTouched, buttonIndex) => {
+                  // press or touched
+                  if (isPressedTouched[0] || isPressedTouched[1]) {
+                    // gpControl[gpIndex][buttonIndex + 4] = isPressedTouched[2];
+                    gpControl[gpIndex][buttonIndex + 4] =
+                      Math.round(isPressedTouched[2] * 1e2) / 1e2;
+                    // console.log(buttonIndex, isPressedTouched[2]);
+                  } else gpControl[gpIndex][buttonIndex + 4] = 0;
+                });
+              myGamepad.axes.forEach((axis, index) => {
+                gpControl[gpIndex][index] = Math.round(axis * 1e2) / 1e2; //round 2 decimal place
+              });
+            }
+          });
+          requestAnimationFrame(gpUpdate);
+        }
+        requestAnimationFrame(gpUpdate);
+      });
+
+      class Circle {
+        constructor(id, x, y, radius, color) {
+          this.id = id;
+          this.x = x;
+          this.y = y;
+          this.radius = radius;
+          this.color = color;
+        }
+        drawGamepad() {
+          ctx.beginPath();
+          ctx.fillStyle = gpControl[gpIndex][this.id] !== 0 ? this.color : '#444';
+          if (this.id === 0)
+            ctx.arc(
+              this.x + gpControl[gpIndex][0] * 30,
+              this.y + gpControl[gpIndex][1] * 30,
+              this.radius,
+              0,
+              2 * Math.PI
+            );
+          else if (this.id === 2)
+            ctx.arc(
+              this.x + gpControl[gpIndex][2] * 30,
+              this.y + gpControl[gpIndex][3] * 30,
+              this.radius,
+              0,
+              2 * Math.PI
+            );
+          else if (this.id === 10 || this.id === 11)
+            ctx.arc(
+              this.x,
+              this.y,
+              this.radius + gpControl[gpIndex][this.id] * 10,
+              0,
+              2 * Math.PI
+            );
+          else ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = 'white';
+          ctx.fillText(this.id, this.x, this.y);
+        }
+      }
+      const gpButtons = [];
+      const gpCenterX = 220;
+      gpButtons.push(new Circle(0, gpCenterX - 70, 190, 20, 'hsl(10, 100%, 50%)')); // left axis
+      gpButtons.push(new Circle(2, gpCenterX + 80, 190, 20, 'hsl(30, 100%, 50%)')); // right axis
+
+      gpButtons.push(
+        new Circle(0 + 4, gpCenterX + 170, 170, 15, 'hsl(100, 100%, 50%)')
+      );
+      gpButtons.push(
+        new Circle(1 + 4, gpCenterX + 200, 140, 15, 'hsl(110, 100%, 50%)')
+      );
+      gpButtons.push(
+        new Circle(2 + 4, gpCenterX + 140, 140, 15, 'hsl(120, 100%, 50%)')
+      );
+      gpButtons.push(
+        new Circle(3 + 4, gpCenterX + 170, 110, 15, 'hsl(130, 100%, 50%)')
+      );
+      gpButtons.push(
+        new Circle(4 + 4, gpCenterX - 170, 50, 10, 'hsl(140, 100%, 50%)')
+      );
+      gpButtons.push(
+        new Circle(5 + 4, gpCenterX + 170, 50, 10, 'hsl(150, 100%, 50%)')
+      );
+      gpButtons.push(
+        new Circle(6 + 4, gpCenterX - 170, 20, 10, 'hsl(160, 100%, 50%)')
+      );
+      gpButtons.push(
+        new Circle(7 + 4, gpCenterX + 170, 20, 10, 'hsl(170, 100%, 50%)')
+      );
+
+      gpButtons.push(
+        new Circle(8 + 4, gpCenterX - 90, 100, 10, 'hsl(180, 100%, 50%)')
+      );
+      gpButtons.push(
+        new Circle(9 + 4, gpCenterX + 100, 100, 10, 'hsl(190, 100%, 50%)')
+      );
+
+      gpButtons.push(
+        new Circle(10 + 4, gpCenterX - 70, 190, 20, 'hsl(200, 100%, 50%)')
+      );
+      gpButtons.push(
+        new Circle(11 + 4, gpCenterX + 80, 190, 20, 'hsl(210, 100%, 50%)')
+      );
+
+      gpButtons.push(
+        new Circle(12 + 4, gpCenterX - 170, 110, 15, 'hsl(220, 100%, 50%)')
+      );
+      gpButtons.push(
+        new Circle(13 + 4, gpCenterX - 170, 170, 15, 'hsl(230, 100%, 50%)')
+      );
+      gpButtons.push(
+        new Circle(14 + 4, gpCenterX - 200, 140, 15, 'hsl(240, 100%, 50%)')
+      );
+      gpButtons.push(
+        new Circle(15 + 4, gpCenterX - 140, 140, 15, 'hsl(250, 100%, 50%)')
+      );
+
+      gpButtons.push(new Circle(16 + 4, gpCenterX, 190, 10, 'hsl(260, 100%, 50%)'));
+      gpButtons.push(new Circle(17 + 4, gpCenterX, 100, 30, 'hsl(270, 100%, 50%)'));
+
+      const gameLoop = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        gpButtons.forEach((button) => button.drawGamepad());
+        window.requestAnimationFrame(gameLoop);
+      };
+      window.requestAnimationFrame(gameLoop);
+    </script>
+  </body>
+</html>

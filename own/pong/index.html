@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pong Game</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+      }
+      #modal {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: absolute;
+        width: 100vw;
+        height: 100vh;
+        -webkit-backdrop-filter: blur(5px);
+        backdrop-filter: blur(5px);
+      }
+      #modal_window {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 5%;
+        width: 700px;
+        height: 150px;
+        -ms-user-select: none;
+        -webkit-user-select: none;
+        user-select: none;
+        background-color: hsla(0, 0%, 50%, 0.3);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+      }
+      #win_info {
+        display: block;
+        font-size: 3em;
+        font-weight: bold;
+        color: #f44;
+      }
+      #play_btn {
+        display: inline-block;
+        font-size: 1.5rem;
+        color: #bbb;
+        width: -moz-fit-content;
+        width: fit-content;
+        padding: 5px 20px;
+        background-color: #a44;
+        text-align: center;
+        border-radius: 10px;
+      }
+      #play_btn:hover {
+        cursor: pointer;
+        background-color: #f44;
+        color: #fff;
+      }
+      #pick_player {
+        --top: 0;
+        display: inline-block;
+        width: 30px;
+        height: 60px;
+        background-color: #844;
+        border-radius: 10px;
+        position: relative;
+        font-size: 20px;
+        text-align: center;
+      }
+      #pick_player::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: var(--top);
+        width: 100%;
+        height: 50%;
+        border-radius: 10px;
+        background-color: #f44;
+        transition: all 0.5s;
+      }
+      #pick_player:hover {
+        cursor: pointer;
+        box-shadow: 0 0 5px orange;
+      }
+      canvas {
+        width: 100vw;
+        height: 100vh;
+        border: 10px crimson solid;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="modal">
+      <div id="modal_window">
+        <span id="win_info">Pick Opponent</span>
+        <span id="pick_player" data-player="Computer">🧑💻</span>
+        <span id="play_btn">play</span>
+      </div>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+      'use strict';
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      // const audio = document.createElement('audio');
+      const audio = new Audio('ping-pong-paddle.mp3');
+      audio.preload = 'auto';
+      audio.autoplay = 'false';
+      const playerHeight = 160;
+      const playerWidth = 12;
+      let playerOneY = (canvas.height - playerHeight) / 2;
+      let playerTwoY = (canvas.height - playerHeight) / 2;
+
+      let upPressed = false;
+      let downPressed = false;
+      let wPressed = false;
+      let sPressed = false;
+
+      let speed;
+      let gameStopped = true;
+      let playerOneScore = 0;
+      let playerTwoScore = 0;
+      const ballRadius = 15;
+      let ballX;
+      let ballY;
+      let dx;
+      let dy;
+      let ballServed = false;
+      let scorePlayer, ballColor;
+
+      document.addEventListener('keydown', keyDownHandler, false);
+      document.addEventListener('keyup', keyUpHandler, false);
+      const playBtn = document.getElementById('play_btn');
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        // ballX = (canvas.width - ballRadius) / 2;
+        // ballY = (canvas.height - ballRadius) / 2;
+      }
+      window.addEventListener('resize', resize);
+      playBtn.addEventListener('click', function () {
+        document.getElementById('modal').style.display = 'none';
+        startGame();
+      });
+
+      const winInfo = document.getElementById('win_info');
+      const pickPlayer = document.getElementById('pick_player');
+      pickPlayer.addEventListener('click', function () {
+        if (this.dataset.player === 'Computer') {
+          this.dataset.player = 'Player One';
+          this.style.setProperty('--top', 0.5);
+        } else {
+          this.dataset.player = 'Computer';
+          this.style.setProperty('--top', 0);
+        }
+        console.log(this.dataset.player);
+        console.log(getComputedStyle(this).getPropertyValue('--top'));
+      });
+
+      function keyUpHandler(e) {
+        if (e.key === 'ArrowUp') {
+          upPressed = false;
+        } else if (e.key === 'ArrowDown') {
+          downPressed = false;
+        }
+        if (e.key === 'w') {
+          wPressed = false;
+        } else if (e.key === 's') {
+          sPressed = false;
+        }
+      }
+
+      function keyDownHandler(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log(e.key);
+        if (e.key === 'ArrowDown') {
+          downPressed = true;
+        } else if (e.key === 'ArrowUp') {
+          upPressed = true;
+        }
+        if (e.key === 'w') {
+          wPressed = true;
+        } else if (e.key === 's') {
+          sPressed = true;
+        }
+        if (e.key === ' ') {
+          if (!ballServed) {
+            ballServed = true;
+            serveBall();
+          }
+        }
+      }
+
+      function drawBall() {
+        ctx.beginPath();
+        ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+        ctx.fillStyle = ballColor;
+        ctx.fill();
+      }
+
+      function serveBall() {
+        dx = speed;
+        dy = speed;
+      }
+
+      function drawPlayerOne() {
+        ctx.beginPath();
+        ctx.rect(0, playerOneY, playerWidth, playerHeight);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+      }
+
+      function drawPlayerTwo() {
+        ctx.beginPath();
+        ctx.rect(canvas.width - playerWidth, playerTwoY, playerWidth, playerHeight);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+      }
+
+      function drawPlayerOneScore() {
+        // ctx.font = '70px Arial';
+        ctx.font = `${10 * playerOneScore + 70}px Arial`;
+        ctx.fillStyle = '#fff';
+        ctx.fillText(playerOneScore.toString(), canvas.width / 4, 150);
+      }
+
+      function drawPlayerTwoScore() {
+        ctx.font = `${10 * playerTwoScore + 70}px Arial`;
+        ctx.fillStyle = '#fff';
+        ctx.fillText(playerTwoScore.toString(), (canvas.width * 3) / 4 - 40, 150);
+      }
+
+      function drawNet() {
+        const netWidth = 10;
+        const netXPosition = (canvas.width - netWidth) / 2;
+        let netYPosition = 20;
+        const step = canvas.height / 20;
+        while (netYPosition < canvas.height) {
+          ctx.beginPath();
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(netXPosition, netYPosition, netWidth, step);
+          netYPosition += step * 2;
+        }
+      }
+
+      function resetBall() {
+        ballColor = 'white';
+        console.log(gameStopped);
+        if (scorePlayer === 1) {
+          ballY = playerOneY + playerHeight / 2;
+          ballX = playerWidth + ballRadius;
+        } else {
+          ballY = playerTwoY + playerHeight / 2;
+          ballX = canvas.width - playerWidth - ballRadius;
+        }
+        // ballX = (canvas.width - ballRadius) / 2;
+        // ballY = (canvas.height - ballRadius) / 2;
+        dx = speed * scorePlayer;
+        // if ((playerOneScore + playerTwoScore) % 2 === 0) {
+        //   dx = speed;
+        //   dy = speed;
+        // } else {
+        //   dx = -speed;
+        //   dy = -speed;
+        // }
+      }
+
+      function wait(ms) {
+        let start = new Date().getTime();
+        let end = start;
+        while (end < start + ms) {
+          end = new Date().getTime();
+        }
+      }
+
+      function draw() {
+        // console.log({ gameStopped });
+        if (gameStopped === false) {
+          ctx.fillStyle = 'black';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          drawNet();
+          drawPlayerOne();
+          drawPlayerTwo();
+
+          if (ballX > canvas.width - ballRadius) {
+            playerOneScore += 1;
+            scorePlayer = 1;
+            // ballColor = 'red';
+            // drawBall();
+            wait(1000);
+            resetBall();
+          } else if (ballX < ballRadius) {
+            playerTwoScore += 1;
+            scorePlayer = -1;
+            // ballColor = 'red';
+            // drawBall();
+            wait(1000);
+            resetBall();
+          } else if (
+            (ballX - ballRadius <= playerWidth &&
+              ballY >= playerOneY &&
+              ballY <= playerOneY + playerHeight) ||
+            (ballX + ballRadius >= canvas.width - playerWidth &&
+              ballY >= playerTwoY &&
+              ballY <= playerTwoY + playerHeight)
+          ) {
+            if (ballX - ballRadius <= playerWidth) {
+              ballX = playerWidth + ballRadius;
+            } else if (ballX + ballRadius >= canvas.width - playerWidth) {
+              ballX = canvas.width - playerWidth - ballRadius;
+            }
+            dx = -dx;
+            if (ballServed) audio.play();
+          }
+
+          drawPlayerOneScore();
+          drawPlayerTwoScore();
+          window.requestAnimationFrame(draw);
+          if (playerOneScore === 11) {
+            // alert('Computer Wins. Play again?');
+            winInfo.innerHTML = `${pickPlayer.dataset.player} Wins!`;
+            document.getElementById('modal').style.display = 'flex';
+            gameStopped = true;
+          } else if (playerTwoScore === 11) {
+            // alert('Player Wins. Play again?');
+            winInfo.innerHTML = 'Player Two Wins!';
+            document.getElementById('modal').style.display = 'flex';
+            gameStopped = true;
+          }
+          if (ballY + dy > canvas.height - ballRadius || ballY + dy < ballRadius) {
+            dy = -dy;
+          }
+          if (downPressed && playerTwoY + playerHeight < canvas.height) {
+            playerTwoY += 5;
+            if (scorePlayer === 1 && ballServed === false) {
+              ballY = playerTwoY + playerHeight / 2;
+              ballX = canvas.width - playerWidth - ballRadius;
+              // drawBall();
+            }
+          } else if (upPressed && playerTwoY > 0) {
+            playerTwoY -= 5;
+            if (scorePlayer === 1 && ballServed === false) {
+              ballY = playerTwoY + playerHeight / 2;
+              ballX = canvas.width - playerWidth - ballRadius;
+              // drawBall();
+            }
+          }
+          if (pickPlayer.dataset.player === 'Player One') {
+            if (sPressed && playerOneY + playerHeight < canvas.height) {
+              playerOneY += 5;
+              if (scorePlayer === -1 && ballServed === false) {
+                ballY = playerOneY + playerHeight / 2;
+                ballX = playerWidth + ballRadius;
+                // drawBall();
+              }
+            } else if (wPressed && playerOneY > 0) {
+              playerOneY -= 5;
+              if (scorePlayer === -1 && ballServed === false) {
+                ballY = playerOneY + playerHeight / 2;
+                ballX = playerWidth + ballRadius;
+                // drawBall();
+              }
+            }
+          } else {
+            if (ballY > playerOneY && playerOneY < canvas.height - playerHeight) {
+              playerOneY += 4;
+            } else if (ballY < playerOneY && playerOneY > 0) {
+              playerOneY -= 4;
+            }
+          }
+
+          ballX += dx;
+          ballY += dy;
+        }
+        drawBall();
+      }
+
+      function startGame() {
+        // document.getElementById('modal').style.display = 'flex';
+        playerOneY = (canvas.height - playerHeight) / 2;
+        playerTwoY = (canvas.height - playerHeight) / 2;
+        gameStopped = false;
+        playerOneScore = 0;
+        playerTwoScore = 0;
+        dx = 0;
+        dy = 0;
+        ballServed = false;
+        if (Math.random() > 0.5) {
+          scorePlayer = -1;
+          ballY = playerOneY + playerHeight / 2;
+          ballX = playerWidth + ballRadius;
+        } else {
+          scorePlayer = 1;
+          ballY = playerTwoY + playerHeight / 2;
+          ballX = canvas.width - playerWidth - ballRadius;
+        }
+        speed = 6;
+        ballColor = 'white';
+        resize();
+        draw();
+      }
+      startGame();
+    </script>
+  </body>
+</html>

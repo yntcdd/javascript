@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pong Game</title>
+  </head>
+  <body>
+    <canvas
+      id="canvas"
+      width="500"
+      height="350"
+      style="
+        width: auto;
+        height: 95%;
+        max-width: 100%;
+        max-height: 100%;
+        left: 0;
+        right: 0;
+        margin-left: auto;
+        margin-right: auto;
+        position: absolute;
+      "
+    ></canvas>
+
+    <script>
+      var canvas = document.getElementById('canvas');
+      var context = canvas.getContext('2d');
+      var playerHeight = 80;
+      var playerWidth = 12;
+      var playerOneY = (canvas.height - playerHeight) / 2;
+      var playerTwoY = (canvas.height - playerHeight) / 2;
+
+      var upPressed = false;
+      var downPressed = false;
+
+      var playerOneScore = 0;
+      var playerTwoScore = 0;
+      var ballRadius = 9;
+      var ballX = (canvas.width - ballRadius) / 2;
+      var ballY = (canvas.height - ballRadius) / 2;
+      var dx = 0;
+      var dy = 0;
+      var ballServed = false;
+
+      document.addEventListener('keydown', keyDownHandler, false);
+      document.addEventListener('keyup', keyUpHandler, false);
+
+      function keyUpHandler(e) {
+        if (e.keyCode == 38) {
+          upPressed = false;
+        } else if (e.keyCode == 40) {
+          downPressed = false;
+        } else if (e.keyCode == 87) {
+          wPressed = false;
+        } else if (e.keyCode == 83) {
+          sPressed = false;
+        }
+      }
+      function keyDownHandler(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        console.log(e.keyCode);
+        if (e.keyCode == 38) {
+          upPressed = true;
+        } else if (e.keyCode == 40) {
+          downPressed = true;
+        } else if (e.keyCode == 87) {
+          wPressed = true;
+        } else if (e.keyCode == 83) {
+          sPressed = true;
+        }
+        if (e.keyCode == 32) {
+          if (!ballServed) {
+            ballServed = true;
+            serveBall();
+          }
+        }
+      }
+
+      function drawBall() {
+        context.beginPath();
+        context.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+        context.fillStffyle = '#ffffff';
+        context.fill();
+        context.closePath();
+      }
+
+      function serveBall() {
+        dx = 5;
+        dy = 5;
+      }
+
+      function drawPlayerOne() {
+        context.beginPath();
+        context.rect(0, playerOneY, playerWidth, playerHeight);
+        context.fillStyle = '#ffffff';
+        context.fill();
+        context.closePath();
+      }
+
+      function drawPlayerTwo() {
+        context.beginPath();
+        context.rect(
+          canvas.width - playerWidth,
+          playerTwoY,
+          playerWidth,
+          playerHeight
+        );
+        context.fillStyle = '#ffffff';
+        context.fill();
+        context.closePath();
+      }
+
+      function drawPlayerOneScore() {
+        context.font = '70px Arial';
+        context.fillStyle = 'ffffff';
+        context.fillText(playerOneScore.toString(), canvas.width / 4, 70);
+      }
+
+      function drawPlayerTwoScore() {
+        context.font = '70px Arial';
+        context.fillStyle = 'ffffff';
+        context.fillText(playerTwoScore.toString(), (canvas.width * 3) / 4 - 40, 70);
+      }
+
+      function drawNet() {
+        var netWidth = 10;
+        var netXPosition = (canvas.width - netWidth) / 2;
+        var netYPosition = 0;
+        var step = canvas.height / 10;
+        while (netYPosition < canvas.height) {
+          context.beginPath();
+          context.rect(netXPosition, netYPosition + step / 4, netWidth, step / 2);
+          context.fillStyle = 'white';
+          context.fill();
+          context.closePath();
+          netYPosition += step;
+        }
+      }
+
+      function resetBall() {
+        ballX = (canvas.width - ballRadius) / 2;
+        ballY = (canvas.height - ballRadius) / 2;
+        if ((playerOneScore + playerTwoScore) % 2 == 0) {
+          dx = 5;
+          dy = 5;
+        } else {
+          dx = -5;
+          dy = 5;
+        }
+      }
+
+      function draw() {
+        context.fillStyle = 'black';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        drawNet();
+        drawPlayerOne();
+        drawPlayerTwo();
+        drawPlayerOneScore();
+        drawPlayerTwoScore();
+        drawBall();
+
+        if (playerOneScore == 11) {
+          alert('Computer Wins. Play again?');
+          playerOneScore = 0;
+          document.location.reload();
+        } else if (playerTwoScore == 11) {
+          alert('Player Wins. Play again?');
+          playerTwoScore = 0;
+          document.location.reload();
+        }
+
+        if (ballY + dy > canvas.height - ballRadius || ballY + dy < ballRadius) {
+          dy = -dy;
+        }
+        if (ballX > canvas.width - ballRadius) {
+          playerOneScore += 1;
+          resetBall();
+        } else if (ballX < ballRadius) {
+          playerTwoScore += 1;
+          resetBall();
+        } else if (
+          ballX < ballRadius + playerWidth &&
+          ballY > playerOneY &&
+          ballY < playerOneY + playerHeight
+        ) {
+          dx = -dx;
+        } else if (
+          ballX > canvas.width - playerWidth &&
+          ballY > playerTwoY &&
+          ballY < playerTwoY + playerHeight
+        ) {
+          dx = -dx;
+        }
+
+        if (downPressed && playerTwoY < canvas.height - playerHeight) {
+          playerTwoY += 5;
+        } else if (upPressed && playerTwoY > 0) {
+          playerTwoY -= 5;
+        }
+        if (ballY > playerOneY && playerOneY < canvas.height - playerHeight) {
+          playerOneY += 3;
+        } else if (ballY < playerOneY && playerOneY > 0) {
+          playerOneY -= 3;
+        }
+
+        ballX += dx;
+        ballY += dy;
+      }
+
+      setInterval(draw, 20);
+    </script>
+  </body>
+</html>

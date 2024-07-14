@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tower defence</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        width: 100vw;
+        height: 100vh;
+        background-color: #333;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      canvas {
+        border: solid 2px teal;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <script defer>
+      const canvas = document.querySelector(`#canvas`);
+      const context = canvas.getContext('2d');
+      canvas.width = 1200;
+      canvas.height = Math.min(window.innerHeight * 0.9, 1400);
+      let oldTimeStamp = 0;
+
+      class GameObject {
+        constructor(id, x, y, vx, vy, color, alpha, lives) {
+          this.id = id;
+          this.x = x;
+          this.y = y;
+          this.vx = vx;
+          this.vy = vy;
+          this.color = color;
+          this.alpha = alpha;
+          this.targetsId = [];
+          this.lives = lives;
+        }
+        positionUpdate() {
+          this.x += this.vx;
+          this.y += this.vy;
+        }
+      }
+
+      class Rectangle extends GameObject {
+        constructor(
+          id,
+          x,
+          y,
+          width,
+          height,
+          vx,
+          vy,
+          angle,
+          range,
+          color,
+          alpha,
+          type,
+          lives
+        ) {
+          super(id, x, y, vx, vy, color, alpha, lives);
+          this.width = width;
+          this.height = height;
+          this.angle = angle;
+          this.range = range;
+          this.type = type;
+        }
+        positionUpdate() {
+          super.positionUpdate();
+          if (this.type === 1) {
+            if (this.y <= canvas.height * 0.05 || this.y >= canvas.height * 0.9)
+              this.vy = -this.vy;
+            if (this.x <= canvas.width * 0.05 || this.x >= canvas.width * 0.9)
+              this.vx = -this.vx;
+          }
+          this.draw();
+        }
+        draw() {
+          if (this.type === 2) {
+            context.translate(this.x, this.y);
+            context.rotate((this.angle * Math.PI) / 180);
+            context.translate(-this.x, -this.y);
+          }
+          context.beginPath();
+          context.fillStyle = this.targetsId.length > 0 ? 'pink' : this.color;
+          context.globalAlpha = this.alpha;
+          context.fillRect(
+            this.x - this.width / 2,
+            this.y - this.height / 2,
+            this.width,
+            this.height
+          );
+          context.globalAlpha = 1;
+          if (this.type === 2) context.resetTransform();
+        }
+      }
+
+      class Projectile extends Rectangle {
+        constructor(
+          id,
+          x,
+          y,
+          width,
+          height,
+          speed,
+          angle,
+          range,
+          color,
+          alpha,
+          towerId,
+          lives
+        ) {
+          super(
+            id,
+            x,
+            y,
+            width,
+            height,
+            speed * Math.cos((angle * Math.PI) / 180),
+            speed * Math.sin((angle * Math.PI) / 180),
+            angle,
+            range,
+            color,
+            alpha,
+            2,
+            lives
+          );
+          this.towerId = towerId;
+        }
+        positionUpdate() {
+          super.positionUpdate();
+        }
+      }
+      let bullets = [];
+      class Circle extends GameObject {
+        constructor(id, x, y, vx, vy, radius, vAngle, color, alpha, lives) {
+          super(id, x, y, vx, vy, color, alpha, lives);
+          this.radius = radius;
+          this.angle = 0;
+          this.vAngle = vAngle;
+          // this.color = color;
+          this.gunLength = this.radius * 1.2;
+          this.lastBulletTime = 0;
+        }
+        positionUpdate() {
+          this.angle =
+            this.targetsId.length > 0
+              ? getAngle(squares[this.targetsId[0]], this)
+              : this.angle + this.vAngle;
+          this.angle =
+            this.angle >= 360 ? this.angle - 360 : this.angle + this.vAngle;
+          if (this.targetsId.length > 0 && Date.now() - this.lastBulletTime >= 200) {
+            this.lastBulletTime = Date.now();
+            bullets.push(
+              new Projectile(
+                0,
+                this.x,
+                this.y,
+                30,
+                1,
+                20,
+                this.angle,
+                250,
+                'red',
+                1,
+                this.id,
+                1
+              )
+            );
+          }
+          this.draw();
+        }
+        draw() {
+          context.translate(this.x, this.y);
+          context.rotate((this.angle * Math.PI) / 180);
+          context.translate(-this.x, -this.y);
+          context.beginPath();
+          context.fillStyle = this.targetsId.length > 0 ? 'pink' : this.color;
+          context.globalAlpha = this.alpha;
+          context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+          context.fill();
+          context.globalAlpha = 1;
+          context.fillStyle = 'back';
+          context.fillRect(this.x, this.y - 1, this.gunLength, 3);
+          context.strokeStyle = 'gray';
+          context.arc(this.x, this.y, 300, 0, 2 * Math.PI);
+          context.arc(this.x, this.y, 250, 0, 2 * Math.PI);
+          context.stroke();
+          context.resetTransform();
+          // context.setTransform(1, 0, 0, 1, 0, 0);
+        }
+      }
+      const squares = [];
+      squares.push(
+        new Rectangle(
+          0,
+          canvas.width / 2,
+          350,
+          50,
+          50,
+          -0.1,
+          0.1,
+          0,
+          300,
+          'teal',
+          0.5,
+          1,
+          3
+        ),
+        new Rectangle(
+          1,
+          canvas.width / 2 - 100,
+          950,
+          50,
+          50,
+          0.1,
+          -0.1,
+          0,
+          300,
+          'teal',
+          0.5,
+          1,
+          3
+        ),
+        new Rectangle(
+          2,
+          canvas.width / 2 - 100,
+          850,
+          50,
+          50,
+          -3,
+          3,
+          0,
+          300,
+          'teal',
+          0.5,
+          1,
+          3
+        )
+      );
+
+      const towers = [];
+      towers.push(
+        new Circle(
+          0,
+          canvas.width * 0.3,
+          canvas.height * 0.3,
+          0,
+          0,
+          30,
+          1,
+          'teal',
+          0.5,
+          10
+        ),
+        new Circle(
+          1,
+          canvas.width * 0.6,
+          canvas.height * 0.6,
+          0,
+          0,
+          30,
+          1,
+          'teal',
+          0.5,
+          10
+        ),
+        new Circle(
+          2,
+          canvas.width * 0.7,
+          canvas.height * 0.2,
+          0,
+          0,
+          30,
+          1,
+          'teal',
+          0.5,
+          10
+        )
+      );
+
+      const intersect = ({ x: cx, y: cy, r: cr }, { x, y, width, height }) => {
+        const distX = Math.abs(cx - x - width / 2); // center of circle to the center of rectangle
+        const distY = Math.abs(cy - y - height / 2);
+
+        if (distX > width / 2 + cr || distY > height / 2 + cr) return false; // no intersect from x
+
+        if (distX <= width / 2 || distY <= height / 2) return true;
+
+        // if the corners of rectangle are inside of circle
+        const Δx = distX - width / 2;
+        const Δy = distY - height / 2;
+        return Δx * Δx + Δy * Δy <= cr * cr;
+      };
+
+      const circleRectIntersect = (cobject, robject) => {
+        const distX = Math.abs(cobject.x - robject.x - robject.width / 2); // center of circle to the center of rectangle
+        const distY = Math.abs(cobject.y - robject.y - robject.height / 2);
+
+        if (
+          distX > robject.width / 2 + cobject.radius ||
+          distY > robject.height / 2 + cobject.radius
+        )
+          return false; // no intersect from x
+
+        if (distX <= robject.width / 2 || distY <= robject.height / 2) return true;
+
+        // if the corners of rectangle are inside of circle
+        const Δx = distX - robject.width / 2;
+        const Δy = distY - robject.height / 2;
+        return Δx * Δx + Δy * Δy <= cobject.radius * cobject.radius;
+      };
+
+      const rectsIntersect = (object1, object2) =>
+        !(
+          object2.x - object2.width / 2 > object1.x + object1.width / 2 ||
+          object2.x + object2.width / 2 < object1.x - object1.width / 2 ||
+          object2.y - object2.height / 2 > object1.y + object1.height / 2 ||
+          object2.y + object2.height / 2 < object1.y - object1.height / 2
+        );
+
+      function intersectRect(r1, r2) {
+        return !(
+          r2.left > r1.right ||
+          r2.right < r1.left ||
+          r2.top > r1.bottom ||
+          r2.bottom < r1.top
+        );
+      }
+
+      const getAngle = (object1, object2) =>
+        (Math.atan2(object2.y - object1.y, object2.x - object1.x) * 180) / Math.PI +
+        180;
+
+      const getDistance = (object1, object2) =>
+        Math.sqrt(
+          (object2.y - object1.y) * (object2.y - object1.y) +
+            (object2.x - object1.x) * (object2.x - object1.x)
+        );
+
+      const gameLoop = (timeStamp = 0) => {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        const timePassed = (timeStamp - oldTimeStamp) / 1000;
+        oldTimeStamp = timeStamp;
+        context.fillStyle = 'teal';
+        context.font = '32px serif';
+        context.fillText(`fps: ${Math.round(1 / timePassed)}`, 20, 30);
+
+        for (const square of squares) square.positionUpdate();
+        for (const [tIndex, tower] of towers.entries()) {
+          tower.positionUpdate();
+          for (const [sIndex, square] of squares.entries()) {
+            // square.positionUpdate();
+            const distance = getDistance(square, tower);
+            if (!square.targetsId.includes(tIndex) && distance <= 300)
+              square.targetsId.push(tIndex);
+            else if (square.targetsId.includes(tIndex) && distance > 300)
+              square.targetsId = square.targetsId.filter(
+                (object) => object.targetsId === tIndex
+              );
+            if (!tower.targetsId.includes(sIndex) && distance <= 300)
+              tower.targetsId.push(sIndex);
+            else if (tower.targetsId.includes(sIndex) && distance > 300)
+              tower.targetsId = tower.targetsId.filter(
+                (object) => object.targetsId === sIndex
+              );
+          }
+        }
+
+        bullets = bullets.filter(
+          (bullet) => getDistance(bullet, towers[bullet.towerId]) <= 300 // rmove bullets when it reaches the range
+        );
+        for (const bullet of bullets) bullet.positionUpdate();
+        window.requestAnimationFrame(gameLoop);
+      };
+      gameLoop();
+    </script>
+  </body>
+</html>
